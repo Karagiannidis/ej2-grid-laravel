@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Karagiannidis\Ej2Grid\Tests;
 
 use Karagiannidis\Ej2Grid\PackageServiceProvider;

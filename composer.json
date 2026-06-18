@@ -18,11 +18,17 @@
             "role": "Developer"
         }
     ],
+    "require": {
+        "php": "^8.5",
+        "illuminate/contracts": "^13.0"
+    },
     "require-dev": {
+        "driftingly/rector-laravel": "^2.5",
         "larastan/larastan": "^3.0",
         "orchestra/testbench": "^11.1",
         "pestphp/pest": "^4.7",
-        "pestphp/pest-plugin-laravel": "^4.1"
+        "pestphp/pest-plugin-laravel": "^4.1",
+        "rector/rector": "^2.4"
     },
     "scripts": {
         "test": "pest",
