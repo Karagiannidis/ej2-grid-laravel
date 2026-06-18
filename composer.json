@@ -1,5 +1,6 @@
 {
     "name": "karagiannidis/ej2-grid-laravel",
+    "description": "Server-side data source adaptor for EJ2 Grid in Laravel",
     "type": "library",
     "keywords": [
         "Ej2",
@@ -18,18 +19,31 @@
         }
     ],
     "require-dev": {
+        "larastan/larastan": "^3.0",
         "orchestra/testbench": "^11.1"
     },
     "autoload": {
         "psr-4": {
-            "Karagiannidis\\Ej2GridLaravel\\": "src"
+            "Karagiannidis\\Ej2Grid\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Karagiannidis\\Ej2GridLaravel\\Tests\\": "tests"
+            "Karagiannidis\\Ej2Grid\\Tests\\": "tests/"
         }
     },
-    "minimum-stability" : "dev",
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Karagiannidis\\Ej2Grid\\PackageServiceProvider"
+            ],
+            "aliases": {
+            }
+        }
+    },
+    "minimum-stability": "dev",
     "prefer-stable": true
 }
