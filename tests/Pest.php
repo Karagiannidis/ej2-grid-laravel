@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Karagiannidis\Ej2Grid\Tests\TestCase;
 
-
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -31,7 +30,7 @@ pest()->extend(TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', fn() => $this->toBe(1));
+expect()->extend('toBeOne', fn () => $this->toBe(1));
 
 /*
 |--------------------------------------------------------------------------

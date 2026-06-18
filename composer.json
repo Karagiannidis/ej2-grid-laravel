@@ -25,14 +25,29 @@
     "require-dev": {
         "driftingly/rector-laravel": "^2.5",
         "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.29",
         "orchestra/testbench": "^11.1",
         "pestphp/pest": "^4.7",
         "pestphp/pest-plugin-laravel": "^4.1",
+        "pestphp/pest-plugin-type-coverage": "^4.0",
         "rector/rector": "^2.4"
     },
     "scripts": {
+        "refactor": "rector process",
+        "refactor:check": "rector process --dry-run",
+        "lint": "pint",
+        "lint:check": "pint --test",
+        "analyse": "phpstan analyse",
         "test": "pest",
-        "analyse": "phpstan analyse"
+        "test:coverage": "pest --coverage --min=100",
+        "test:types": "pest --type-coverage --min=100",
+        "check": [
+            "@refactor:check",
+            "@lint:check",
+            "@analyse",
+            "@test:coverage",
+            "@test:types"
+        ]
     },
     "autoload": {
         "psr-4": {
