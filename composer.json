@@ -1,0 +1,35 @@
+{
+    "name": "karagiannidis/ej2-grid-laravel",
+    "type": "library",
+    "keywords": [
+        "Ej2",
+        "Grid",
+        "Laravel",
+        "Tables"
+    ],
+    "homepage": "https://github.com/Karagiannidis/ej2-grid-laravel",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Karagiannidis Petros",
+            "email": "hello@petros.codes",
+            "homepage": "https://petros.codes",
+            "role": "Developer"
+        }
+    ],
+    "require-dev": {
+        "orchestra/testbench": "^11.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Karagiannidis\\Ej2GridLaravel\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Karagiannidis\\Ej2GridLaravel\\Tests\\": "tests"
+        }
+    },
+    "minimum-stability" : "dev",
+    "prefer-stable": true
+}
