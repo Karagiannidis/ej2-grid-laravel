@@ -30,7 +30,7 @@ final class PersonGrid extends Grid
             new TextField('email'),
             new NumericField('age'),
             new BooleanField('active'),
-            new DateField('created_at'),
+            new DateField('createdAt', 'created_at'),
             new CustomField('initials', fn (Model $person): string => mb_substr((string) $person->getAttribute('name'), 0, 1)),
         ];
     }

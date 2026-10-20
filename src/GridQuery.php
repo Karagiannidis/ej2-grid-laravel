@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
+use Karagiannidis\Ej2Grid\Fields\ColumnField;
 
 /**
  * Applies what an EJ2 request asks for to a grid's base query.
@@ -23,6 +24,7 @@ final class GridQuery
 
         $query = $grid->buildQuery($request);
 
+        $this->sort($query, $request, $grid->fieldMap());
         $this->orderByKey($query);
         $this->paginate($query, $request);
 
@@ -43,6 +45,24 @@ final class GridQuery
 
         if ($request->take > $limit) {
             throw InvalidRequestException::pageSizeExceeded($request->take, $limit);
+        }
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<string, Field>  $fields
+     */
+    private function sort(Builder $query, GridRequest $request, array $fields): void
+    {
+        foreach ($request->sorts as $index => $sort) {
+            $path = sprintf('sorted.%d.name', $index);
+            $field = $fields[$sort->field] ?? throw InvalidRequestException::unknownField($path, $sort->field);
+
+            if (! $field instanceof ColumnField || ! $field->isSortable()) {
+                throw InvalidRequestException::notSortable($path, $sort->field);
+            }
+
+            $query->orderBy($query->qualifyColumn($field->column), $sort->direction->toSql());
         }
     }
 

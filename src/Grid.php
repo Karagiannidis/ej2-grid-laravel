@@ -28,6 +28,22 @@ abstract class Grid
         return $this->query($request);
     }
 
+    /**
+     * The grid's fields keyed by the name EJ2 uses for them.
+     *
+     * @return array<string, Field>
+     */
+    final public function fieldMap(): array
+    {
+        $map = [];
+
+        foreach ($this->fields() as $field) {
+            $map[$field->name] = $field;
+        }
+
+        return $map;
+    }
+
     final public function pageSizeLimit(): ?int
     {
         return $this->maxPageSize();

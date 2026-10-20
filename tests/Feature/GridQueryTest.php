@@ -36,6 +36,79 @@ describe('ordering', function (): void {
     });
 });
 
+describe('sorting', function (): void {
+    it('sorts rows by the requested field', function (): void {
+        Person::insert([['name' => 'Alice'], ['name' => 'Carol'], ['name' => 'Bob']]);
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [['name' => 'name', 'direction' => 'descending']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Carol', 'Bob', 'Alice']);
+    });
+
+    it('sorts by several fields in the order the user applied them', function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'age' => 30],
+            ['name' => 'Bob', 'age' => 25],
+            ['name' => 'Carol', 'age' => 30],
+            ['name' => 'Dave', 'age' => 25],
+        ]);
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [
+                ['name' => 'age', 'direction' => 'ascending'],
+                ['name' => 'name', 'direction' => 'descending'],
+            ],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Dave', 'Bob', 'Carol', 'Alice']);
+    });
+
+    it('sorts by the column behind a field named differently', function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'created_at' => '2024-01-01 00:00:00'],
+            ['name' => 'Bob', 'created_at' => '2025-01-01 00:00:00'],
+            ['name' => 'Carol', 'created_at' => '2023-01-01 00:00:00'],
+        ]);
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [['name' => 'createdAt', 'direction' => 'descending']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob', 'Alice', 'Carol']);
+    });
+
+    it('rejects a sort on a field the grid does not define', function (): void {
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [['name' => 'password', 'direction' => 'ascending']],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "Unknown field 'password' at 'sorted.0.name'");
+    });
+
+    it('rejects a sort on a field that is not sortable', function (string $field): void {
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [['name' => $field, 'direction' => 'ascending']],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, sprintf("Field '%s' at 'sorted.0.name' is not sortable", $field));
+    })->with([
+        'non-interactive field' => 'id',
+        'custom field' => 'initials',
+    ]);
+});
+
 describe('paging', function (): void {
     beforeEach(function (): void {
         Person::insert([
