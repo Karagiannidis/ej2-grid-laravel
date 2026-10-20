@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('people', function (Blueprint $table): void {
             $table->id();
-            $table->string('name');
+            $table->string('name')->index();
             $table->string('email')->nullable();
             $table->integer('age')->nullable();
             $table->boolean('active')->default(true);
