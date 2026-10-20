@@ -6,7 +6,7 @@ namespace Karagiannidis\Ej2Grid\Exceptions;
 
 use RuntimeException;
 
-final class InvalidRequestException extends RuntimeException
+final class InvalidRequestException extends RuntimeException implements Ej2GridException
 {
     public static function unexpectedType(string $path, string $expected, mixed $actual): self
     {
