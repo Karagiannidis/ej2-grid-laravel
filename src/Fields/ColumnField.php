@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Karagiannidis\Ej2Grid\Fields;
 
+use Illuminate\Database\Eloquent\Model;
 use Karagiannidis\Ej2Grid\Field;
 
 /**
@@ -18,6 +19,11 @@ abstract class ColumnField extends Field
         parent::__construct($name, $searchable, $sortable, $filterable, $groupable);
 
         $this->column = $column ?? $name;
+    }
+
+    final public function valueFrom(Model $model): mixed
+    {
+        return $model->getAttribute($this->column);
     }
 
     final public function searchable(bool $searchable = true): static

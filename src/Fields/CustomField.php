@@ -21,4 +21,9 @@ final class CustomField extends Field
     {
         parent::__construct($name, searchable: false, sortable: false, filterable: false, groupable: false);
     }
+
+    public function valueFrom(Model $model): mixed
+    {
+        return ($this->resolver)($model);
+    }
 }
