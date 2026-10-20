@@ -9,8 +9,13 @@ use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 abstract class TestCase extends OrchestraTestCase
 {
-	protected function getPackageProviders($app): array
-	{
-		return [PackageServiceProvider::class];
-	}
+    protected function getPackageProviders($app): array
+    {
+        return [PackageServiceProvider::class];
+    }
+
+    protected function defineDatabaseMigrations(): void
+    {
+        $this->loadMigrationsFrom(__DIR__.'/Fixtures/migrations');
+    }
 }

@@ -10,13 +10,13 @@ use Karagiannidis\Ej2Grid\Fields\NumericField;
 use Karagiannidis\Ej2Grid\Fields\TextField;
 
 describe('columns', function (): void {
-    it('reads from the name param if no column param is given', function (): void {
+    it('uses the field name as the column when none is given', function (): void {
         $field = new TextField('name');
 
         expect($field->column)->toBe('name');
     });
 
-    it('reads from column param when one is given', function (): void {
+    it('reads from a different column when one is given', function (): void {
         $field = new TextField('full_name', 'name');
 
         expect($field->name)->toBe('full_name')

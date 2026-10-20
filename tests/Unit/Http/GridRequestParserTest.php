@@ -303,7 +303,7 @@ describe('malformed payloads', function (): void {
             ->toThrow(InvalidRequestException::class, "a string at 'group.0'");
     });
 
-    it('rejects a list-valued key that is not a list', function (): void {
+    it('rejects sorted when it is not a list', function (): void {
         $payload = ['sorted' => 'name'];
 
         expect(fn () => $this->parser->parse($payload))
