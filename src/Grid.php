@@ -27,4 +27,18 @@ abstract class Grid
     {
         return $this->query($request);
     }
+
+    final public function pageSizeLimit(): ?int
+    {
+        return $this->maxPageSize();
+    }
+
+    /**
+     * The largest page this grid serves. Null serves every row at once,
+     * for a grid with paging turned off.
+     */
+    protected function maxPageSize(): ?int
+    {
+        return 500;
+    }
 }

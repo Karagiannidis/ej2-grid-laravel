@@ -2,15 +2,18 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\Builder;
+use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
 use Karagiannidis\Ej2Grid\GridQuery;
 use Karagiannidis\Ej2Grid\Http\GridRequestParser;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\PersonGrid;
+use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\UnpagedPersonGrid;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Models\Person;
 
 describe('base query', function (): void {
     it('returns every row the grid query selects', function (): void {
         Person::insert([['name' => 'Alice'], ['name' => 'Bob']]);
-        $request = new GridRequestParser()->parse([]);
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 12]);
 
         $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
 
@@ -25,7 +28,7 @@ describe('ordering', function (): void {
             ['id' => 2, 'name' => 'Alice'],
             ['id' => 3, 'name' => 'Bob'],
         ]);
-        $request = new GridRequestParser()->parse([]);
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 12]);
 
         $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
 
@@ -67,12 +70,38 @@ describe('paging', function (): void {
 
         expect($names->all())->toBe([]);
     });
+});
 
-    it('returns every row when the request has no take', function (): void {
-        $request = new GridRequestParser()->parse([]);
+describe('page size limit', function (): void {
+    it('serves a page as large as the limit', function (): void {
+        Person::insert([['name' => 'Alice'], ['name' => 'Bob']]);
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 500]);
 
         $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
 
-        expect($names->all())->toBe(['Alice', 'Bob', 'Carol', 'Dave', 'Erin']);
+        expect($names->all())->toBe(['Alice', 'Bob']);
+    });
+
+    it('rejects a page larger than the limit', function (): void {
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 501]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "'take' to be at most 500, got 501");
+    });
+
+    it('rejects a request without a take', function (): void {
+        $request = new GridRequestParser()->parse([]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "'take' to be at most 500, got none");
+    });
+
+    it('returns every row without a take when the grid has no limit', function (): void {
+        Person::insert([['name' => 'Alice'], ['name' => 'Bob'], ['name' => 'Carol']]);
+        $request = new GridRequestParser()->parse([]);
+
+        $names = new GridQuery()->build(new UnpagedPersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice', 'Bob', 'Carol']);
     });
 });

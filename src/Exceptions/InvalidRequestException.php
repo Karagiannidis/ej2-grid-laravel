@@ -18,6 +18,16 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
         return new self(sprintf("Expected '%s' to be at least %d, got %d.", $path, $minimum, $actual));
     }
 
+    public static function pageSizeExceeded(int $take, int $limit): self
+    {
+        return new self(sprintf("Expected 'take' to be at most %d, got %d.", $limit, $take));
+    }
+
+    public static function missingTake(int $limit): self
+    {
+        return new self(sprintf("Expected 'take' to be at most %d, got none. Return null from the grid's maxPageSize() to serve unpaged requests.", $limit));
+    }
+
     public static function unknownOperator(string $path, string $operator): self
     {
         return new self(sprintf("Unknown filter operator '%s' at '%s'.", $operator, $path));
