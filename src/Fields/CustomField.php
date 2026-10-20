@@ -19,6 +19,6 @@ final class CustomField extends Field
      */
     public function __construct(string $name, public readonly Closure $resolver)
     {
-        parent::__construct($name, null, searchable: false, sortable: false, filterable: false, groupable: false);
+        parent::__construct($name, searchable: false, sortable: false, filterable: false, groupable: false);
     }
 }

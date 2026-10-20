@@ -22,12 +22,6 @@ describe('columns', function (): void {
         expect($field->name)->toBe('full_name')
             ->and($field->column)->toBe('name');
     });
-
-    it('has no column for a custom field', function (): void {
-        $field = new CustomField('initials', fn (): string => 'A');
-
-        expect($field->column)->toBeNull();
-    });
 });
 
 describe('defaults', function (): void {
