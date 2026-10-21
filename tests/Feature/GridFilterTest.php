@@ -115,6 +115,109 @@ describe('comparison', function (): void {
     });
 });
 
+describe('text', function (): void {
+    beforeEach(function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'email' => 'alice@example.com'],
+            ['name' => 'Bob', 'email' => 'bob@test.org'],
+            ['name' => 'Carol', 'email' => null],
+            ['name' => 'Dave', 'email' => '100%_off@deals.com'],
+        ]);
+    });
+
+    it('returns the rows containing the text', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'contains', 'value' => 'example']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+
+    it('returns the rows starting with the text', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'startswith', 'value' => 'bob']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob']);
+    });
+
+    it('returns the rows ending with the text', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'endswith', 'value' => '.com']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice', 'Dave']);
+    });
+
+    it('returns the rows a "does not" filter leaves, empty cells included', function (string $operator, string $text): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => $operator, 'value' => $text]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob', 'Carol', 'Dave']);
+    })->with([
+        'does not contain' => ['doesnotcontain', 'example'],
+        'does not start with' => ['doesnotstartwith', 'alice'],
+        'does not end with' => ['doesnotendwith', 'example.com'],
+    ]);
+
+    it('matches % and _ in the text as plain characters', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'contains', 'value' => '%_']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Dave']);
+    });
+
+    it('matches * and ? in a wildcard filter as any text and any character', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'wildcard', 'value' => 'b?b*.org']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob']);
+    });
+
+    it("matches the user's own % and _ in a like filter", function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'like', 'value' => '%@_est.%']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob']);
+    });
+
+    it('ignores a text filter the user cleared', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'contains', 'value' => null]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice', 'Bob', 'Carol', 'Dave']);
+    });
+});
+
 describe('conditions', function (): void {
     beforeEach(function (): void {
         Person::insert([
@@ -213,13 +316,23 @@ describe('invalid filters', function (): void {
         'custom field' => 'initials',
     ]);
 
-    it('rejects a filter operator that is not supported', function (): void {
+    it('rejects a text filter whose value is not text', function (): void {
         $request = new GridRequestParser()->parse([
             'skip' => 0, 'take' => 12,
-            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'contains', 'value' => 'li']],
+            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'contains', 'value' => ['li']]],
         ]);
 
         expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
-            ->toThrow(InvalidRequestException::class, "Filter operator 'contains' at 'where.0.operator' is not supported");
+            ->toThrow(InvalidRequestException::class, "Expected text at 'where.0.value', got array");
+    });
+
+    it('rejects a filter operator that is not supported', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'in', 'value' => ['Alice']]],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "Filter operator 'in' at 'where.0.operator' is not supported");
     });
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Karagiannidis\Ej2Grid;
 
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Karagiannidis\Ej2Grid\DTOs\FilterGroup;
@@ -11,6 +12,7 @@ use Karagiannidis\Ej2Grid\DTOs\FilterPredicate;
 use Karagiannidis\Ej2Grid\Enums\Operator;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
 use Karagiannidis\Ej2Grid\Fields\ColumnField;
+use Karagiannidis\Ej2Grid\Query\LikeExpression;
 
 /**
  * @internal
@@ -71,6 +73,14 @@ final readonly class GridFilter
             Operator::GreaterThanOrEqual => $this->compare($query, $column, '>=', $predicate->value),
             Operator::LessThan => $this->compare($query, $column, '<', $predicate->value),
             Operator::LessThanOrEqual => $this->compare($query, $column, '<=', $predicate->value),
+            Operator::Contains => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.$this->escape($text).'%'),
+            Operator::DoesNotContain => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.$this->escape($text).'%', not: true),
+            Operator::StartsWith => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => $this->escape($text).'%'),
+            Operator::DoesNotStartWith => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => $this->escape($text).'%', not: true),
+            Operator::EndsWith => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.$this->escape($text)),
+            Operator::DoesNotEndWith => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.$this->escape($text), not: true),
+            Operator::WildCard => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.strtr($this->escape($text), ['*' => '%', '?' => '_']).'%'),
+            Operator::Like => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => str_replace('!', '!!', $text)),
             default => throw InvalidRequestException::unsupportedOperator($path.'.operator', $predicate->operator->value),
         };
     }
@@ -120,5 +130,38 @@ final readonly class GridFilter
         }
 
         $query->where($column, $operator, $value);
+    }
+
+    /**
+     * EJ2 sends a null value when the user clears the text, so nothing is filtered.
+     *
+     * @param  Builder<Model>  $query
+     * @param  Closure(string): string  $pattern
+     */
+    private function like(Builder $query, string $column, mixed $value, string $path, Closure $pattern, bool $not = false): void
+    {
+        if ($value === null) {
+            return;
+        }
+
+        if (! is_scalar($value)) {
+            throw InvalidRequestException::unexpectedType($path.'.value', 'text', $value);
+        }
+
+        $query->whereRaw(new LikeExpression($column, $not), [$pattern((string) $value)]);
+
+        // EJ2 counts an empty cell as not containing the text, SQL's NOT LIKE leaves it out.
+        if ($not) {
+            $query->orWhereNull($column);
+        }
+    }
+
+    /**
+     * Makes % and _ in the user's text match themselves. The escape character is !
+     * rather than \, which MySQL would need doubled.
+     */
+    private function escape(string $text): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $text);
     }
 }
