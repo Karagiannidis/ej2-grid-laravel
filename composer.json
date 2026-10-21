@@ -41,6 +41,24 @@
         "lint:check": "pint --test",
         "analyse": "phpstan analyse",
         "test": "pest",
+        "test:mysql": [
+            "docker compose up -d --wait mysql",
+            "@putenv DB_CONNECTION=mysql",
+            "@putenv DB_PORT=33306",
+            "pest"
+        ],
+        "test:pgsql": [
+            "docker compose up -d --wait pgsql",
+            "@putenv DB_CONNECTION=pgsql",
+            "@putenv DB_PORT=55432",
+            "pest"
+        ],
+        "test:databases": [
+            "@test",
+            "@test:mysql",
+            "@test:pgsql"
+        ],
+        "databases:stop": "docker compose down",
         "test:coverage": "pest --coverage --min=100",
         "test:types": "pest --type-coverage --min=100",
         "check": [
