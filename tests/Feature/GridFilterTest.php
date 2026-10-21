@@ -305,6 +305,81 @@ describe('empty cells', function (): void {
     });
 });
 
+describe('calendar dates', function (): void {
+    beforeEach(function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'birth_date' => '1990-05-20'],
+            ['name' => 'Bob', 'birth_date' => '1985-01-01'],
+            ['name' => 'Carol', 'birth_date' => null],
+        ]);
+    });
+
+    it('returns the rows on the date picked in a dateonly column', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'birthDate', 'operator' => 'equal', 'value' => '1990-05-20']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+
+    it('returns the rows before the date picked in a dateonly column', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'birthDate', 'operator' => 'lessthan', 'value' => '1990-05-20']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob']);
+    });
+});
+
+describe('instants', function (): void {
+    afterEach(function (): void {
+        date_default_timezone_set('UTC');
+    });
+
+    it("returns the rows on the viewer's local day", function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'created_at' => '2024-03-15 09:30:00'],
+            ['name' => 'Bob', 'created_at' => '2024-03-15 23:30:00'],
+            ['name' => 'Carol', 'created_at' => '2024-03-14 21:00:00'],
+        ]);
+        $athensViewerPicks15March = [[
+            'isComplex' => true,
+            'condition' => 'and',
+            'predicates' => [
+                ['isComplex' => false, 'field' => 'createdAt', 'operator' => 'greaterthan', 'value' => '2024-03-14T21:59:59.999Z'],
+                ['isComplex' => false, 'field' => 'createdAt', 'operator' => 'lessthan', 'value' => '2024-03-15T22:00:00.000Z'],
+            ],
+        ]];
+        $request = new GridRequestParser()->parse(['skip' => 0, 'take' => 12, 'where' => $athensViewerPicks15March]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+
+    it('compares an instant in the application timezone', function (): void {
+        date_default_timezone_set('Europe/Athens');
+        Person::insert([
+            ['name' => 'Alice', 'created_at' => '2024-03-15 11:30:00'],
+            ['name' => 'Carol', 'created_at' => '2024-03-14 23:00:00'],
+        ]);
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'createdAt', 'operator' => 'greaterthan', 'value' => '2024-03-14T21:59:59.999Z']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+});
+
 describe('conditions', function (): void {
     beforeEach(function (): void {
         Person::insert([
@@ -412,6 +487,29 @@ describe('invalid filters', function (): void {
         expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
             ->toThrow(InvalidRequestException::class, "Expected text at 'where.0.value', got array");
     });
+
+    it('rejects a calendar date filter from a column that is not dateonly', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'birthDate', 'operator' => 'greaterthan', 'value' => '1990-05-19T21:59:59.999Z']],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "Expected a date like 2024-03-15 at 'where.0.value', got '1990-05-19T21:59:59.999Z'. Set the EJ2 column's type to 'dateonly'.");
+    });
+
+    it('rejects an instant filter that is not a date and time', function (mixed $value, string $got): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'createdAt', 'operator' => 'equal', 'value' => $value]],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, sprintf("Expected a date and time like 2024-03-15T09:30:00.000Z at 'where.0.value', got %s.", $got));
+    })->with([
+        'date without a time' => ['2024-03-15', "'2024-03-15'"],
+        'timestamp number' => [1710495000, 'int'],
+    ]);
 
     it('rejects a list filter whose value is not a list', function (): void {
         $request = new GridRequestParser()->parse([

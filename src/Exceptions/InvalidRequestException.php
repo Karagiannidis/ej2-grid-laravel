@@ -44,6 +44,16 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
         return new self(sprintf("Field '%s' at '%s' is not filterable.", $field, $path));
     }
 
+    public static function expectedCalendarDate(string $path, mixed $value): self
+    {
+        return new self(sprintf("Expected a date like 2024-03-15 at '%s', got %s. Set the EJ2 column's type to 'dateonly'.", $path, self::describe($value)));
+    }
+
+    public static function expectedInstant(string $path, mixed $value): self
+    {
+        return new self(sprintf("Expected a date and time like 2024-03-15T09:30:00.000Z at '%s', got %s.", $path, self::describe($value)));
+    }
+
     public static function unknownOperator(string $path, string $operator): self
     {
         return new self(sprintf("Unknown filter operator '%s' at '%s'.", $operator, $path));
@@ -70,5 +80,10 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
     public function getHeaders(): array
     {
         return [];
+    }
+
+    private static function describe(mixed $value): string
+    {
+        return is_string($value) ? sprintf("'%s'", $value) : get_debug_type($value);
     }
 }
