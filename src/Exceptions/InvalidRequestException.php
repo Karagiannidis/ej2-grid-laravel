@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Karagiannidis\Ej2Grid\Exceptions;
 
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
-final class InvalidRequestException extends RuntimeException implements Ej2GridException
+final class InvalidRequestException extends RuntimeException implements Ej2GridException, HttpExceptionInterface
 {
     public static function unexpectedType(string $path, string $expected, mixed $actual): self
     {
@@ -51,5 +52,18 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
     public static function unknownCondition(string $path, string $condition): self
     {
         return new self(sprintf("Unknown filter condition '%s' at '%s'. Expected 'and' or 'or'.", $condition, $path));
+    }
+
+    public function getStatusCode(): int
+    {
+        return 422;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getHeaders(): array
+    {
+        return [];
     }
 }

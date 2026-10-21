@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Karagiannidis\Ej2Grid\DTOs;
 
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\JsonResponse;
 use JsonSerializable;
 
-final readonly class GridResult implements JsonSerializable
+final readonly class GridResult implements JsonSerializable, Responsable
 {
     /**
      * @param  list<array<string, mixed>>  $rows
@@ -26,5 +28,10 @@ final readonly class GridResult implements JsonSerializable
         }
 
         return ['result' => $this->rows, 'count' => $this->count];
+    }
+
+    public function toResponse(mixed $request): JsonResponse
+    {
+        return new JsonResponse($this);
     }
 }

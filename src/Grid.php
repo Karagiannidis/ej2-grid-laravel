@@ -6,7 +6,10 @@ namespace Karagiannidis\Ej2Grid;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
+use Karagiannidis\Ej2Grid\DTOs\GridResult;
+use Karagiannidis\Ej2Grid\Http\GridRequestParser;
 
 abstract class Grid
 {
@@ -19,6 +22,13 @@ abstract class Grid
      * @return list<Field>
      */
     abstract protected function fields(): array;
+
+    final public function handle(Request $request): GridResult
+    {
+        $gridRequest = new GridRequestParser()->parse($request->all());
+
+        return new GridFetcher()->fetch($this, $gridRequest);
+    }
 
     /**
      * @return Builder<Model>
