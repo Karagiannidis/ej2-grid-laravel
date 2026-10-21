@@ -55,6 +55,25 @@ describe('count', function (): void {
             ->and($result->count)->toBe(5);
     });
 
+    it('counts only the rows the filter matches', function (): void {
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 1,
+            'where' => [[
+                'isComplex' => true,
+                'condition' => 'or',
+                'predicates' => [
+                    ['isComplex' => false, 'field' => 'name', 'operator' => 'equal', 'value' => 'Alice'],
+                    ['isComplex' => false, 'field' => 'name', 'operator' => 'equal', 'value' => 'Bob'],
+                ],
+            ]],
+        ]);
+
+        $result = new GridFetcher()->fetch(new PersonGrid, $request);
+
+        expect($result->rows)->toHaveCount(1)
+            ->and($result->count)->toBe(2);
+    });
+
     it('leaves the count out when the request does not ask for it', function (): void {
         $request = new GridRequestParser()->parse(['skip' => 0, 'take' => 2]);
 

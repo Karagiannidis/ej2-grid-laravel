@@ -25,8 +25,10 @@ final class GridQuery
         $this->ensureWithinPageLimit($grid, $request);
 
         $query = $grid->buildQuery($request);
+        $fields = $grid->fieldMap();
 
-        $this->sort($query, $request, $grid->fieldMap());
+        $this->filter($query, $request, $fields);
+        $this->sort($query, $request, $fields);
         $this->orderByKey($query);
         $this->paginate($query, $request);
 
@@ -48,6 +50,15 @@ final class GridQuery
         if ($request->take > $limit) {
             throw InvalidRequestException::pageSizeExceeded($request->take, $limit);
         }
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<string, Field>  $fields
+     */
+    private function filter(Builder $query, GridRequest $request, array $fields): void
+    {
+        new GridFilter($fields)->apply($query, $request->filters);
     }
 
     /**

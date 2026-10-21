@@ -39,6 +39,16 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
         return new self(sprintf("Field '%s' at '%s' is not sortable.", $field, $path));
     }
 
+    public static function notFilterable(string $path, string $field): self
+    {
+        return new self(sprintf("Field '%s' at '%s' is not filterable.", $field, $path));
+    }
+
+    public static function unsupportedOperator(string $path, string $operator): self
+    {
+        return new self(sprintf("Filter operator '%s' at '%s' is not supported.", $operator, $path));
+    }
+
     public static function unknownOperator(string $path, string $operator): self
     {
         return new self(sprintf("Unknown filter operator '%s' at '%s'.", $operator, $path));
