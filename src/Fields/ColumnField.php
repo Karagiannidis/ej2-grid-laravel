@@ -23,7 +23,7 @@ abstract class ColumnField extends Field
 
     final public function valueFrom(Model $model): mixed
     {
-        return $model->getAttribute($this->column);
+        return $this->format($model->getAttribute($this->column));
     }
 
     final public function searchable(bool $searchable = true): static
@@ -57,5 +57,14 @@ abstract class ColumnField extends Field
     final public function nonInteractive(): static
     {
         return $this->searchable(false)->sortable(false)->filterable(false)->groupable(false);
+    }
+
+    /**
+     * Format the column's value for EJ2. Most fields send it unchanged;
+     * date fields override this to send the format EJ2 parses.
+     */
+    protected function format(mixed $value): mixed
+    {
+        return $value;
     }
 }

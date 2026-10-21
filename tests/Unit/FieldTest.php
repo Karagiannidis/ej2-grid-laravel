@@ -6,8 +6,10 @@ use Karagiannidis\Ej2Grid\Field;
 use Karagiannidis\Ej2Grid\Fields\BooleanField;
 use Karagiannidis\Ej2Grid\Fields\CustomField;
 use Karagiannidis\Ej2Grid\Fields\DateField;
+use Karagiannidis\Ej2Grid\Fields\DateTimeField;
 use Karagiannidis\Ej2Grid\Fields\NumericField;
 use Karagiannidis\Ej2Grid\Fields\TextField;
+use Karagiannidis\Ej2Grid\Tests\Fixtures\Models\Person;
 
 describe('columns', function (): void {
     it('uses the field name as the column when none is given', function (): void {
@@ -77,4 +79,42 @@ describe('modifiers', function (): void {
             ->and($field->isFilterable())->toBeFalse()
             ->and($field->isGroupable())->toBeFalse();
     });
+});
+
+describe('values', function (): void {
+    it('shows a calendar date as midnight with no timezone', function (mixed $stored): void {
+        $person = new Person()->forceFill(['birth_date' => $stored]);
+        $field = new DateField('birthDate', 'birth_date');
+
+        $value = $field->valueFrom($person);
+
+        expect($value)->toBe('1990-05-20T00:00:00');
+    })->with([
+        'date object' => fn (): DateTimeImmutable => new DateTimeImmutable('1990-05-20 15:45:00'),
+        'date string' => '1990-05-20',
+        'date-time string' => '1990-05-20 15:45:00',
+    ]);
+
+    it("shows an instant in UTC so EJ2 converts it to the viewer's timezone", function (mixed $stored): void {
+        $person = new Person()->forceFill(['last_seen_at' => $stored]);
+        $field = new DateTimeField('lastSeenAt', 'last_seen_at');
+
+        $value = $field->valueFrom($person);
+
+        expect($value)->toBe('2024-03-15T09:30:00Z');
+    })->with([
+        'date object in another timezone' => fn (): DateTimeImmutable => new DateTimeImmutable('2024-03-15 11:30:00', new DateTimeZone('Europe/Athens')),
+        'string in the application timezone' => '2024-03-15 09:30:00',
+    ]);
+
+    it('leaves an empty date empty', function (Field $field): void {
+        $person = new Person()->forceFill(['day' => null]);
+
+        $value = $field->valueFrom($person);
+
+        expect($value)->toBeNull();
+    })->with([
+        'calendar date' => fn (): Field => new DateField('day'),
+        'instant' => fn (): Field => new DateTimeField('day'),
+    ]);
 });

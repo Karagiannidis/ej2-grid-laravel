@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->integer('age')->nullable();
             $table->boolean('active')->default(true);
+            $table->date('birth_date')->nullable();
             $table->timestamps();
         });
     }

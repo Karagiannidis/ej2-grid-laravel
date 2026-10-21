@@ -10,6 +10,7 @@ use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\Fields\BooleanField;
 use Karagiannidis\Ej2Grid\Fields\CustomField;
 use Karagiannidis\Ej2Grid\Fields\DateField;
+use Karagiannidis\Ej2Grid\Fields\DateTimeField;
 use Karagiannidis\Ej2Grid\Fields\NumericField;
 use Karagiannidis\Ej2Grid\Fields\TextField;
 use Karagiannidis\Ej2Grid\Grid;
@@ -25,12 +26,13 @@ final class PersonGrid extends Grid
     protected function fields(): array
     {
         return [
-            new TextField('id')->nonInteractive(),
+            new NumericField('id')->nonInteractive(),
             new TextField('name'),
             new TextField('email'),
             new NumericField('age'),
             new BooleanField('active'),
-            new DateField('createdAt', 'created_at'),
+            new DateField('birthDate', 'birth_date'),
+            new DateTimeField('createdAt', 'created_at'),
             new CustomField('initials', fn (Model $person): string => mb_substr((string) $person->getAttribute('name'), 0, 1)),
         ];
     }

@@ -12,6 +12,8 @@ use Karagiannidis\Ej2Grid\Fields\ColumnField;
 
 /**
  * Applies what an EJ2 request asks for to a grid's base query.
+ *
+ * @internal
  */
 final class GridQuery
 {
