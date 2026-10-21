@@ -218,6 +218,93 @@ describe('text', function (): void {
     });
 });
 
+describe('lists', function (): void {
+    beforeEach(function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'age' => 25],
+            ['name' => 'Bob', 'age' => 30],
+            ['name' => 'Carol', 'age' => 35],
+            ['name' => 'Dave', 'age' => null],
+        ]);
+    });
+
+    it('returns the rows whose value is in the list', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'age', 'operator' => 'in', 'value' => [25, 35]]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice', 'Carol']);
+    });
+
+    it('returns the rows whose value is not in the list, empty cells included', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'age', 'operator' => 'notin', 'value' => [25, 35]]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob', 'Dave']);
+    });
+});
+
+describe('empty cells', function (): void {
+    beforeEach(function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'email' => 'alice@example.com'],
+            ['name' => 'Bob', 'email' => ''],
+            ['name' => 'Carol', 'email' => null],
+        ]);
+    });
+
+    it('returns the rows with no value', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'isnull', 'value' => null]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Carol']);
+    });
+
+    it('returns the rows with any value, empty text included', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'isnotnull', 'value' => null]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice', 'Bob']);
+    });
+
+    it('returns the rows with empty text or no value', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'isempty', 'value' => null]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob', 'Carol']);
+    });
+
+    it('returns the rows with text in them', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'isnotempty', 'value' => null]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+});
+
 describe('conditions', function (): void {
     beforeEach(function (): void {
         Person::insert([
@@ -326,13 +413,13 @@ describe('invalid filters', function (): void {
             ->toThrow(InvalidRequestException::class, "Expected text at 'where.0.value', got array");
     });
 
-    it('rejects a filter operator that is not supported', function (): void {
+    it('rejects a list filter whose value is not a list', function (): void {
         $request = new GridRequestParser()->parse([
             'skip' => 0, 'take' => 12,
-            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'in', 'value' => ['Alice']]],
+            'where' => [['isComplex' => false, 'field' => 'age', 'operator' => 'in', 'value' => 25]],
         ]);
 
         expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
-            ->toThrow(InvalidRequestException::class, "Filter operator 'in' at 'where.0.operator' is not supported");
+            ->toThrow(InvalidRequestException::class, "Expected a list at 'where.0.value', got int");
     });
 });

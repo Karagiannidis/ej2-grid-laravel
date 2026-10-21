@@ -81,7 +81,12 @@ final readonly class GridFilter
             Operator::DoesNotEndWith => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.$this->escape($text), not: true),
             Operator::WildCard => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => '%'.strtr($this->escape($text), ['*' => '%', '?' => '_']).'%'),
             Operator::Like => $this->like($query, $column, $predicate->value, $path, fn (string $text): string => str_replace('!', '!!', $text)),
-            default => throw InvalidRequestException::unsupportedOperator($path.'.operator', $predicate->operator->value),
+            Operator::In => $this->in($query, $column, $predicate->value, $path),
+            Operator::NotIn => $this->in($query, $column, $predicate->value, $path, not: true),
+            Operator::IsNull => $query->whereNull($column),
+            Operator::IsNotNull => $query->whereNotNull($column),
+            Operator::IsEmpty => $query->where($column, '=', '')->orWhereNull($column),
+            Operator::IsNotEmpty => $query->where($column, '!=', '')->whereNotNull($column),
         };
     }
 
@@ -130,6 +135,25 @@ final readonly class GridFilter
         }
 
         $query->where($column, $operator, $value);
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     */
+    private function in(Builder $query, string $column, mixed $value, string $path, bool $not = false): void
+    {
+        if (! is_array($value)) {
+            throw InvalidRequestException::unexpectedType($path.'.value', 'a list', $value);
+        }
+
+        if (! $not) {
+            $query->whereIn($column, $value);
+
+            return;
+        }
+
+        // EJ2 counts an empty cell as not in any list, SQL's NOT IN leaves it out.
+        $query->whereNotIn($column, $value)->orWhereNull($column);
     }
 
     /**
