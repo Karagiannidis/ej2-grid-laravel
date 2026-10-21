@@ -118,10 +118,10 @@ describe('comparison', function (): void {
 describe('text', function (): void {
     beforeEach(function (): void {
         Person::insert([
-            ['name' => 'Alice', 'email' => 'alice@example.com'],
-            ['name' => 'Bob', 'email' => 'bob@test.org'],
-            ['name' => 'Carol', 'email' => null],
-            ['name' => 'Dave', 'email' => '100%_off@deals.com'],
+            ['name' => 'Alice', 'email' => 'alice@example.com', 'age' => 30],
+            ['name' => 'Bob', 'email' => 'bob@test.org', 'age' => 25],
+            ['name' => 'Carol', 'email' => null, 'age' => 35],
+            ['name' => 'Dave', 'email' => '100%_off@deals.com', 'age' => null],
         ]);
     });
 
@@ -206,6 +206,17 @@ describe('text', function (): void {
         expect($names->all())->toBe(['Bob']);
     });
 
+    it('matches text inside a number', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'age', 'operator' => 'contains', 'value' => '3']],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice', 'Carol']);
+    });
+
     it('ignores a text filter the user cleared', function (): void {
         $request = new GridRequestParser()->parse([
             'skip' => 0, 'take' => 12,
@@ -215,6 +226,60 @@ describe('text', function (): void {
         $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
 
         expect($names->all())->toBe(['Alice', 'Bob', 'Carol', 'Dave']);
+    });
+});
+
+describe('ignoring case', function (): void {
+    beforeEach(function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'email' => 'alice@example.com'],
+            ['name' => 'Bob', 'email' => 'bob@test.org'],
+            ['name' => 'Carol', 'email' => null],
+        ]);
+    });
+
+    it('returns the rows equal to the value in any case', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'equal', 'value' => 'ALICE', 'ignoreCase' => true]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+
+    it('returns the rows that differ from the value in any case', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'notequal', 'value' => 'ALICE', 'ignoreCase' => true]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob', 'Carol']);
+    });
+
+    it('returns the rows containing the text in any case', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'name', 'operator' => 'contains', 'value' => 'LIC', 'ignoreCase' => true]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Alice']);
+    });
+
+    it('still returns the rows with an empty cell when the user ticks Blanks', function (): void {
+        $request = new GridRequestParser()->parse([
+            'skip' => 0, 'take' => 12,
+            'where' => [['isComplex' => false, 'field' => 'email', 'operator' => 'equal', 'value' => null, 'ignoreCase' => true]],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Carol']);
     });
 });
 

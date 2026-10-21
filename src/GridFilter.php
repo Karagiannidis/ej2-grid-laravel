@@ -12,6 +12,7 @@ use Karagiannidis\Ej2Grid\DTOs\FilterPredicate;
 use Karagiannidis\Ej2Grid\Enums\Operator;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
 use Karagiannidis\Ej2Grid\Fields\ColumnField;
+use Karagiannidis\Ej2Grid\Fields\TextField;
 use Karagiannidis\Ej2Grid\Query\LikeExpression;
 
 /**
@@ -66,22 +67,24 @@ final readonly class GridFilter
 
         $column = $query->qualifyColumn($field->column);
         $value = $field->filterValue($predicate->value, $path.'.value');
+        $ignoreCase = $predicate->ignoreCase && $field instanceof TextField;
+        $like = fn (Closure $pattern, bool $not = false) => $this->like($query, $column, $value, $path, $pattern, $not, $ignoreCase);
 
         match ($predicate->operator) {
-            Operator::Equal => $this->equal($query, $column, $value),
-            Operator::NotEqual => $this->notEqual($query, $column, $value),
+            Operator::Equal => $ignoreCase && $value !== null ? $like($this->escape(...)) : $this->equal($query, $column, $value),
+            Operator::NotEqual => $ignoreCase && $value !== null ? $like($this->escape(...), not: true) : $this->notEqual($query, $column, $value),
             Operator::GreaterThan => $this->compare($query, $column, '>', $value),
             Operator::GreaterThanOrEqual => $this->compare($query, $column, '>=', $value),
             Operator::LessThan => $this->compare($query, $column, '<', $value),
             Operator::LessThanOrEqual => $this->compare($query, $column, '<=', $value),
-            Operator::Contains => $this->like($query, $column, $value, $path, fn (string $text): string => '%'.$this->escape($text).'%'),
-            Operator::DoesNotContain => $this->like($query, $column, $value, $path, fn (string $text): string => '%'.$this->escape($text).'%', not: true),
-            Operator::StartsWith => $this->like($query, $column, $value, $path, fn (string $text): string => $this->escape($text).'%'),
-            Operator::DoesNotStartWith => $this->like($query, $column, $value, $path, fn (string $text): string => $this->escape($text).'%', not: true),
-            Operator::EndsWith => $this->like($query, $column, $value, $path, fn (string $text): string => '%'.$this->escape($text)),
-            Operator::DoesNotEndWith => $this->like($query, $column, $value, $path, fn (string $text): string => '%'.$this->escape($text), not: true),
-            Operator::WildCard => $this->like($query, $column, $value, $path, fn (string $text): string => '%'.strtr($this->escape($text), ['*' => '%', '?' => '_']).'%'),
-            Operator::Like => $this->like($query, $column, $value, $path, fn (string $text): string => str_replace('!', '!!', $text)),
+            Operator::Contains => $like(fn (string $text): string => '%'.$this->escape($text).'%'),
+            Operator::DoesNotContain => $like(fn (string $text): string => '%'.$this->escape($text).'%', not: true),
+            Operator::StartsWith => $like(fn (string $text): string => $this->escape($text).'%'),
+            Operator::DoesNotStartWith => $like(fn (string $text): string => $this->escape($text).'%', not: true),
+            Operator::EndsWith => $like(fn (string $text): string => '%'.$this->escape($text)),
+            Operator::DoesNotEndWith => $like(fn (string $text): string => '%'.$this->escape($text), not: true),
+            Operator::WildCard => $like(fn (string $text): string => '%'.strtr($this->escape($text), ['*' => '%', '?' => '_']).'%'),
+            Operator::Like => $like(fn (string $text): string => str_replace('!', '!!', $text)),
             Operator::In => $this->in($query, $column, $value, $path),
             Operator::NotIn => $this->in($query, $column, $value, $path, not: true),
             Operator::IsNull => $query->whereNull($column),
@@ -163,7 +166,7 @@ final readonly class GridFilter
      * @param  Builder<Model>  $query
      * @param  Closure(string): string  $pattern
      */
-    private function like(Builder $query, string $column, mixed $value, string $path, Closure $pattern, bool $not = false): void
+    private function like(Builder $query, string $column, mixed $value, string $path, Closure $pattern, bool $not, bool $ignoreCase): void
     {
         if ($value === null) {
             return;
@@ -173,7 +176,7 @@ final readonly class GridFilter
             throw InvalidRequestException::unexpectedType($path.'.value', 'text', $value);
         }
 
-        $query->whereRaw(new LikeExpression($column, $not), [$pattern((string) $value)]);
+        $query->whereRaw(new LikeExpression($column, $not, $ignoreCase), [$pattern((string) $value)]);
 
         // EJ2 counts an empty cell as not containing the text, SQL's NOT LIKE leaves it out.
         if ($not) {
