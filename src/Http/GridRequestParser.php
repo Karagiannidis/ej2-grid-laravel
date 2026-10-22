@@ -32,6 +32,7 @@ final class GridRequestParser
             searches: $this->searches($payload),
             groups: $this->strings($payload, 'group'),
             select: $this->strings($payload, 'select'),
+            distinct: isset($payload['distinct']) ? $this->string($payload, 'distinct', '') : null,
         );
     }
 

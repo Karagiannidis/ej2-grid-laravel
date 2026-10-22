@@ -209,13 +209,20 @@ describe('valid payloads', function (): void {
             ->and($request->sorts)->toEqual([new Sort('status', SortDirection::Ascending)]);
     });
 
-    it('parses a distinct values request from a filter dropdown', function (): void {
-        $payload = ['select' => ['status'], 'skip' => 0, 'take' => 3000];
+    it('parses the field a filter dropdown asks distinct values for', function (): void {
+        $payload = ['requiresCounts' => true, 'take' => 1000, 'distinct' => 'name', 'params' => ['distinct' => 'name']];
 
         $request = $this->parser->parse($payload);
 
-        expect($request->select)->toBe(['status'])
-            ->and($request->take)->toBe(3000);
+        expect($request->distinct)->toBe('name');
+    });
+
+    it('parses a request without distinct as a request for rows', function (): void {
+        $payload = ['requiresCounts' => true, 'skip' => 0, 'take' => 12];
+
+        $request = $this->parser->parse($payload);
+
+        expect($request->distinct)->toBeNull();
     });
 });
 
@@ -334,6 +341,13 @@ describe('malformed payloads', function (): void {
 
         expect(fn () => $this->parser->parse($payload))
             ->toThrow(InvalidRequestException::class, "a string at 'group.0'");
+    });
+
+    it('rejects a distinct field name that is not a string', function (): void {
+        $payload = ['take' => 1000, 'distinct' => ['name']];
+
+        expect(fn () => $this->parser->parse($payload))
+            ->toThrow(InvalidRequestException::class, "Expected a string at 'distinct', got array.");
     });
 
     it('rejects sorted when it is not a list', function (): void {

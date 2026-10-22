@@ -29,8 +29,14 @@ final class GridQuery
 
         $this->filter($query, $request, $fields);
         $this->search($query, $request, $fields);
-        $this->sort($query, $request, $fields);
-        $this->orderByKey($query);
+
+        if ($request->distinct !== null) {
+            $this->distinct($query, $request->distinct, $fields);
+        } else {
+            $this->sort($query, $request, $fields);
+            $this->orderByKey($query);
+        }
+
         $this->paginate($query, $request);
 
         return $query;
@@ -87,6 +93,26 @@ final class GridQuery
 
             $query->orderBy($query->qualifyColumn($field->column), $sort->direction->toSql());
         }
+    }
+
+    /**
+     * One row per value of the field, in order, for a filter dropdown.
+     *
+     * @param  Builder<Model>  $query
+     * @param  array<string, Field>  $fields
+     */
+    private function distinct(Builder $query, string $name, array $fields): void
+    {
+        $field = $fields[$name] ?? throw InvalidRequestException::unknownField('distinct', $name);
+
+        if (! $field instanceof ColumnField || ! $field->isFilterable()) {
+            throw InvalidRequestException::notFilterable('distinct', $name);
+        }
+
+        $column = $query->qualifyColumn($field->column);
+
+        // grouBy instead of distinct so count includes empty cells
+        $query->select($column)->groupBy($column)->orderBy($column);
     }
 
     /**

@@ -11,6 +11,7 @@ final readonly class GridRequest
      * @param  list<Search>  $searches
      * @param  list<string>  $groups
      * @param  list<string>  $select
+     * @param  ?string  $distinct
      */
     public function __construct(
         public int $skip,
@@ -21,5 +22,6 @@ final readonly class GridRequest
         public array $searches,
         public array $groups,
         public array $select,
+        public ?string $distinct,
     ) {}
 }
