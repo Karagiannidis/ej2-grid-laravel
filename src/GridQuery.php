@@ -83,7 +83,9 @@ final class GridQuery
      */
     private function sort(Builder $query, GridRequest $request, array $fields): void
     {
-        foreach ($request->sorts as $index => $sort) {
+        // EJ2 lists the main sort last, the order its own sorting in the browser
+        // applies them in. Grouped columns come after the rest, so they lead.
+        foreach (array_reverse($request->sorts, preserve_keys: true) as $index => $sort) {
             $path = sprintf('sorted.%d.name', $index);
             $field = $fields[$sort->field] ?? throw InvalidRequestException::unknownField($path, $sort->field);
 

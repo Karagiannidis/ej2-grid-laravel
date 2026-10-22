@@ -49,7 +49,7 @@ describe('sorting', function (): void {
         expect($names->all())->toBe(['Carol', 'Bob', 'Alice']);
     });
 
-    it('sorts by several fields in the order the user applied them', function (): void {
+    it('sorts by several fields, the one the user sorted first leading', function (): void {
         Person::insert([
             ['name' => 'Alice', 'age' => 30],
             ['name' => 'Bob', 'age' => 25],
@@ -58,9 +58,10 @@ describe('sorting', function (): void {
         ]);
         $request = new GridRequestParser()->parse([
             'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            // The user sorted by age, then by name: EJ2 lists them the other way round.
             'sorted' => [
-                ['name' => 'age', 'direction' => 'ascending'],
                 ['name' => 'name', 'direction' => 'descending'],
+                ['name' => 'age', 'direction' => 'ascending'],
             ],
         ]);
 
@@ -93,6 +94,19 @@ describe('sorting', function (): void {
 
         expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
             ->toThrow(InvalidRequestException::class, "Unknown field 'password' at 'sorted.0.name'");
+    });
+
+    it('points at the sort EJ2 sent when one of several is unknown', function (): void {
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [
+                ['name' => 'name', 'direction' => 'ascending'],
+                ['name' => 'password', 'direction' => 'ascending'],
+            ],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "Unknown field 'password' at 'sorted.1.name'");
     });
 
     it('rejects a sort on a field that is not sortable', function (string $field): void {

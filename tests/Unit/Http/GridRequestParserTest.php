@@ -78,7 +78,7 @@ describe('valid payloads', function (): void {
         expect($request->sorts)->toEqual([new Sort('created_at', SortDirection::Descending)]);
     });
 
-    it('parses multi-column sorts in the order the user applied them', function (): void {
+    it('keeps multi-column sorts in the order EJ2 sends them', function (): void {
         $payload = [
             'sorted' => [
                 ['name' => 'status', 'direction' => 'ascending'],
