@@ -123,6 +123,54 @@ describe('sorting', function (): void {
     ]);
 });
 
+describe('grouping', function (): void {
+    it('returns the rows with the grouped column leading', function (): void {
+        Person::insert([
+            ['name' => 'Alice', 'age' => 30],
+            ['name' => 'Bob', 'age' => 25],
+            ['name' => 'Carol', 'age' => 30],
+            ['name' => 'Dave', 'age' => 25],
+        ]);
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            // The user sorted by name, then grouped by age: EJ2 adds age's sort last.
+            'sorted' => [
+                ['name' => 'name', 'direction' => 'ascending'],
+                ['name' => 'age', 'direction' => 'ascending'],
+            ],
+            'group' => ['age'],
+        ]);
+
+        $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
+
+        expect($names->all())->toBe(['Bob', 'Dave', 'Alice', 'Carol']);
+    });
+
+    it('rejects grouping by a field the grid does not define', function (): void {
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'sorted' => [['name' => 'password', 'direction' => 'ascending']],
+            'group' => ['password'],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, "Unknown field 'password' at 'group.0'");
+    });
+
+    it('rejects grouping by a field that is not groupable', function (string $field): void {
+        $request = new GridRequestParser()->parse([
+            'requiresCounts' => true, 'skip' => 0, 'take' => 12,
+            'group' => [$field],
+        ]);
+
+        expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
+            ->toThrow(InvalidRequestException::class, sprintf("Field '%s' at 'group.0' is not groupable", $field));
+    })->with([
+        'non-interactive field' => 'id',
+        'custom field' => 'initials',
+    ]);
+});
+
 describe('paging', function (): void {
     beforeEach(function (): void {
         Person::insert([

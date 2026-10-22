@@ -27,6 +27,7 @@ final class GridQuery
         $query = $grid->buildQuery($request);
         $fields = $grid->fieldMap();
 
+        $this->ensureGroupable($request, $fields);
         $this->filter($query, $request, $fields);
         $this->search($query, $request, $fields);
 
@@ -56,6 +57,21 @@ final class GridQuery
 
         if ($request->take > $limit) {
             throw InvalidRequestException::pageSizeExceeded($request->take, $limit);
+        }
+    }
+
+    /**
+     * @param  array<string, Field>  $fields
+     */
+    private function ensureGroupable(GridRequest $request, array $fields): void
+    {
+        foreach ($request->groups as $index => $name) {
+            $path = sprintf('group.%d', $index);
+            $field = $fields[$name] ?? throw InvalidRequestException::unknownField($path, $name);
+
+            if (! $field instanceof ColumnField || ! $field->isGroupable()) {
+                throw InvalidRequestException::notGroupable($path, $name);
+            }
         }
     }
 

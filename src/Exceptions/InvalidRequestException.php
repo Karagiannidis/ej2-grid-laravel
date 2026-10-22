@@ -44,6 +44,11 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
         return new self(sprintf("Field '%s' at '%s' is not filterable.", $field, $path));
     }
 
+    public static function notGroupable(string $path, string $field): self
+    {
+        return new self(sprintf("Field '%s' at '%s' is not groupable.", $field, $path));
+    }
+
     public static function expectedCalendarDate(string $path, mixed $value): self
     {
         return new self(sprintf("Expected a date like 2024-03-15 at '%s', got %s. Set the EJ2 column's type to 'dateonly'.", $path, self::describe($value)));
