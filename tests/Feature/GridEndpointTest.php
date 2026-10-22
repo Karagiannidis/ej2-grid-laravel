@@ -32,8 +32,10 @@ it('answers with a plain list of rows when EJ2 does not ask for a count', functi
 });
 
 it('rejects an invalid request with a 422 and the reason', function (): void {
-    $response = $this->postJson('people', ['skip' => 0, 'take' => 501]);
+    $limit = new PersonGrid()->pageSizeLimit();
+
+    $response = $this->postJson('people', ['skip' => 0, 'take' => $limit + 1]);
 
     $response->assertUnprocessable()
-        ->assertJsonPath('message', "Expected 'take' to be at most 500, got 501.");
+        ->assertJsonPath('message', sprintf("Expected 'take' to be at most %d, got %d.", $limit, $limit + 1));
 });

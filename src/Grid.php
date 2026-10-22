@@ -61,10 +61,11 @@ abstract class Grid
 
     /**
      * The largest page this grid serves. Null serves every row at once,
-     * for a grid with paging turned off.
+     * for a grid with paging turned off. EJ2's checkbox
+     * filter asks for 1000 rows (filterChoiceCount) by default.
      */
     protected function maxPageSize(): ?int
     {
-        return 500;
+        return 1000;
     }
 }

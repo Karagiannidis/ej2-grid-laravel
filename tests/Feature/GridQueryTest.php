@@ -146,9 +146,9 @@ describe('paging', function (): void {
 });
 
 describe('page size limit', function (): void {
-    it('serves a page as large as the limit', function (): void {
+    it('serves the rows EJ2 asks for to fill the checkbox filter', function (): void {
         Person::insert([['name' => 'Alice'], ['name' => 'Bob']]);
-        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 500]);
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'take' => 1000]);
 
         $names = new GridQuery()->build(new PersonGrid, $request)->pluck('name');
 
@@ -156,17 +156,19 @@ describe('page size limit', function (): void {
     });
 
     it('rejects a page larger than the limit', function (): void {
-        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 501]);
+        $limit = new PersonGrid()->pageSizeLimit();
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => $limit + 1]);
 
         expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
-            ->toThrow(InvalidRequestException::class, "'take' to be at most 500, got 501");
+            ->toThrow(InvalidRequestException::class, sprintf("'take' to be at most %d, got %d", $limit, $limit + 1));
     });
 
     it('rejects a request without a take', function (): void {
+        $limit = new PersonGrid()->pageSizeLimit();
         $request = new GridRequestParser()->parse([]);
 
         expect(fn (): Builder => new GridQuery()->build(new PersonGrid, $request))
-            ->toThrow(InvalidRequestException::class, "'take' to be at most 500, got none");
+            ->toThrow(InvalidRequestException::class, sprintf("'take' to be at most %d, got none", $limit));
     });
 
     it('returns every row without a take when the grid has no limit', function (): void {
