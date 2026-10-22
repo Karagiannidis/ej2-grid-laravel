@@ -69,6 +69,11 @@ final class InvalidRequestException extends RuntimeException implements Ej2GridE
         return new self(sprintf("Unknown filter condition '%s' at '%s'. Expected 'and' or 'or'.", $condition, $path));
     }
 
+    public static function filterTooDeep(string $path, int $max): self
+    {
+        return new self(sprintf("Filter group at '%s' is nested deeper than %d groups.", $path, $max));
+    }
+
     public function getStatusCode(): int
     {
         return 422;
