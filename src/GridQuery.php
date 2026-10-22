@@ -6,7 +6,9 @@ namespace Karagiannidis\Ej2Grid;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
+use Karagiannidis\Ej2Grid\Exceptions\InvalidGridException;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
 use Karagiannidis\Ej2Grid\Fields\ColumnField;
 
@@ -28,6 +30,7 @@ final class GridQuery
         $fields = $grid->fieldMap();
 
         $this->ensureGroupable($request, $fields);
+        $this->join($query, $fields);
         $this->filter($query, $request, $fields);
         $this->search($query, $request, $fields);
 
@@ -76,6 +79,80 @@ final class GridQuery
     }
 
     /**
+     * Left joins each relation the fields read, once, and selects their values
+     * next to the grid's own columns. A row without the related model gets
+     * empty values, which filters treat like any empty cell.
+     *
+     * @param  Builder<Model>  $query
+     * @param  array<string, Field>  $fields
+     */
+    private function join(Builder $query, array $fields): void
+    {
+        $related = $this->relatedFields($fields);
+
+        if ($related === []) {
+            return;
+        }
+
+        $model = $query->getModel();
+        $joined = [];
+
+        if ($query->getQuery()->columns === null) {
+            $query->select($model->qualifyColumn('*'));
+        }
+
+        foreach ($related as $field) {
+            $alias = $field->relationAlias();
+
+            if (! isset($joined[$alias])) {
+                $this->joinRelation($query, $field);
+                $joined[$alias] = true;
+            }
+
+            $query->addSelect($field->qualifiedColumn($model).' as '.$field->attribute());
+        }
+    }
+
+    /**
+     * @param  array<string, Field>  $fields
+     * @return list<ColumnField>
+     */
+    private function relatedFields(array $fields): array
+    {
+        $related = [];
+
+        foreach ($fields as $field) {
+            if ($field instanceof ColumnField && $field->relation !== null) {
+                $related[] = $field;
+            }
+        }
+
+        return $related;
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     */
+    private function joinRelation(Builder $query, ColumnField $field): void
+    {
+        $relationName = (string) $field->relation;
+        $relation = $query->getModel()->{$relationName}();
+
+        if (! $relation instanceof BelongsTo) {
+            throw InvalidGridException::unsupportedRelation($field->name, $relationName, get_debug_type($relation));
+        }
+
+        $alias = $field->relationAlias();
+
+        $query->leftJoin(
+            $relation->getRelated()->getTable().' as '.$alias,
+            $relation->getQualifiedForeignKeyName(),
+            '=',
+            $alias.'.'.$relation->getOwnerKeyName(),
+        );
+    }
+
+    /**
      * @param  Builder<Model>  $query
      * @param  array<string, Field>  $fields
      */
@@ -109,7 +186,7 @@ final class GridQuery
                 throw InvalidRequestException::notSortable($path, $sort->field);
             }
 
-            $query->orderBy($query->qualifyColumn($field->column), $sort->direction->toSql());
+            $query->orderBy($field->qualifiedColumn($query->getModel()), $sort->direction->toSql());
         }
     }
 
@@ -127,10 +204,10 @@ final class GridQuery
             throw InvalidRequestException::notFilterable('distinct', $name);
         }
 
-        $column = $query->qualifyColumn($field->column);
+        $column = $field->qualifiedColumn($query->getModel());
 
         // grouBy instead of distinct so count includes empty cells
-        $query->select($column)->groupBy($column)->orderBy($column);
+        $query->select($column.' as '.$field->attribute())->groupBy($column)->orderBy($column);
     }
 
     /**

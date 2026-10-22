@@ -6,6 +6,7 @@ namespace Karagiannidis\Ej2Grid;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\DTOs\GridResult;
 
@@ -74,6 +75,9 @@ final class GridFetcher
             $row[$name] = $field->valueFrom($model);
         }
 
-        return $row;
+        /** @var array<string, mixed> $nested */
+        $nested = Arr::undot($row);
+
+        return $nested;
     }
 }

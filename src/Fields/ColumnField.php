@@ -9,21 +9,55 @@ use Karagiannidis\Ej2Grid\Field;
 
 /**
  * A field backed by a database column, so it can take part in grid operations.
+ * A name with dots, like 'team.name', reads the column of a related model.
  */
 abstract class ColumnField extends Field
 {
     public readonly string $column;
 
+    public readonly ?string $relation;
+
     protected function __construct(string $name, ?string $column, bool $searchable, bool $sortable, bool $filterable, bool $groupable)
     {
         parent::__construct($name, $searchable, $sortable, $filterable, $groupable);
 
-        $this->column = $column ?? $name;
+        $dot = mb_strrpos($name, '.');
+
+        $this->relation = $dot === false ? null : mb_substr($name, 0, $dot);
+        $this->column = $column ?? ($dot === false ? $name : mb_substr($name, $dot + 1));
     }
 
     final public function valueFrom(Model $model): mixed
     {
-        return $this->format($model->getAttribute($this->column));
+        return $this->format($model->getAttribute($this->attribute()));
+    }
+
+    /**
+     * The column with its table, or with the alias its relation is joined as.
+     *
+     * @internal
+     */
+    final public function qualifiedColumn(Model $model): string
+    {
+        return $this->relation === null
+            ? $model->qualifyColumn($this->column)
+            : $this->relationAlias().'.'.$this->column;
+    }
+
+    /**
+     * @internal
+     */
+    final public function attribute(): string
+    {
+        return $this->relation === null ? $this->column : $this->name;
+    }
+
+    /**
+     * @internal
+     */
+    final public function relationAlias(): string
+    {
+        return str_replace('.', '__', (string) $this->relation);
     }
 
     /**

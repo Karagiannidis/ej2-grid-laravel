@@ -98,7 +98,7 @@ final readonly class GridFilter
      */
     private function condition(Builder $query, ColumnField $field, Operator $operator, mixed $value, bool $ignoreCase, string $path): void
     {
-        $column = $query->qualifyColumn($field->column);
+        $column = $field->qualifiedColumn($query->getModel());
         $value = $field->filterValue($value, $path);
         $ignoreCase = $ignoreCase && $field instanceof TextField;
         $like = fn (Closure $pattern, bool $not = false) => $this->like($query, $column, $value, $path, $pattern, $not, $ignoreCase);

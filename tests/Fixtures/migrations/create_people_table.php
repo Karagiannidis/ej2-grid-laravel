@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('age')->nullable();
             $table->boolean('active')->default(true);
             $table->date('birth_date')->nullable();
+            $table->foreignId('team_id')->nullable();
             $table->timestamps();
         });
     }
