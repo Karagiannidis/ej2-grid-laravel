@@ -16,6 +16,8 @@ use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
 
 final class GridRequestParser
 {
+    private const int MAX_GROUP_DEPTH = 10;
+
     /**
      * @param  array<mixed>  $payload
      */
@@ -25,7 +27,7 @@ final class GridRequestParser
             skip: isset($payload['skip']) ? $this->int($payload, 'skip', 0) : 0,
             take: isset($payload['take']) ? $this->int($payload, 'take', 1) : null,
             requiresCounts: $this->bool($payload, 'requiresCounts'),
-            filters: new FilterGroup(Condition::And, $this->predicates($payload['where'] ?? [], 'where')),
+            filters: new FilterGroup(Condition::And, $this->predicates($payload['where'] ?? [], 'where', 0)),
             sorts: $this->sorts($payload),
             searches: $this->searches($payload),
             groups: $this->strings($payload, 'group'),
@@ -36,7 +38,7 @@ final class GridRequestParser
     /**
      * @return list<FilterPredicate|FilterGroup>
      */
-    private function predicates(mixed $raw, string $path): array
+    private function predicates(mixed $raw, string $path, int $depth): array
     {
         if (! is_array($raw)) {
             throw InvalidRequestException::unexpectedType($path, 'a list', $raw);
@@ -45,22 +47,29 @@ final class GridRequestParser
         $predicates = [];
 
         foreach (array_values($raw) as $index => $entry) {
-            $predicates[] = $this->predicate($entry, sprintf('%s.%d', $path, $index));
+            $predicates[] = $this->predicate($entry, sprintf('%s.%d', $path, $index), $depth);
         }
 
         return $predicates;
     }
 
-    private function predicate(mixed $raw, string $path): FilterPredicate|FilterGroup
+    /**
+     * @param  int  $depth
+     */
+    private function predicate(mixed $raw, string $path, int $depth): FilterPredicate|FilterGroup
     {
         if (! is_array($raw)) {
             throw InvalidRequestException::unexpectedType($path, 'a predicate', $raw);
         }
 
         if ($this->bool($raw, 'isComplex', $path)) {
+            if ($depth === self::MAX_GROUP_DEPTH) {
+                throw InvalidRequestException::filterTooDeep($path, self::MAX_GROUP_DEPTH);
+            }
+
             return new FilterGroup(
                 condition: $this->condition($raw, $path),
-                predicates: $this->predicates($raw['predicates'] ?? null, $path.'.predicates'),
+                predicates: $this->predicates($raw['predicates'] ?? null, $path.'.predicates', $depth + 1),
             );
         }
 

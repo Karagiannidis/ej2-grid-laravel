@@ -16,6 +16,20 @@ beforeEach(function (): void {
     $this->parser = new GridRequestParser;
 });
 
+/**
+ * @return array<string, mixed>
+ */
+function filterNestedIn(int $groups): array
+{
+    $predicate = ['isComplex' => false, 'field' => 'name', 'operator' => 'equal', 'value' => 'Alice', 'ignoreCase' => false];
+
+    for ($i = 0; $i < $groups; $i++) {
+        $predicate = ['isComplex' => true, 'condition' => 'and', 'predicates' => [$predicate]];
+    }
+
+    return ['where' => [$predicate]];
+}
+
 describe('valid payloads', function (): void {
     it('parses an initial request with nothing but paging', function (): void {
         $payload = ['requiresCounts' => true, 'skip' => 0, 'take' => 12];
@@ -135,6 +149,14 @@ describe('valid payloads', function (): void {
                 new FilterPredicate('age', Operator::GreaterThan, 26, false),
             ]),
         ]));
+    });
+
+    it('parses filters nested as deep as the limit', function (): void {
+        $payload = filterNestedIn(10);
+
+        $parse = fn () => $this->parser->parse($payload);
+
+        expect($parse)->not->toThrow(InvalidRequestException::class);
     });
 
     it('parses an in filter keeping its value list intact', function (): void {
@@ -266,6 +288,17 @@ describe('malformed payloads', function (): void {
 
         expect(fn () => $this->parser->parse($payload))
             ->toThrow(InvalidRequestException::class, "condition 'xor' at 'where.0.condition'");
+    });
+
+    it('rejects filters nested deeper than the limit', function (): void {
+        $payload = filterNestedIn(11);
+
+        $parse = fn () => $this->parser->parse($payload);
+
+        expect($parse)->toThrow(
+            InvalidRequestException::class,
+            "Filter group at 'where.0".str_repeat('.predicates.0', 10)."' is nested deeper than 10 groups.",
+        );
     });
 
     it('rejects a sort that is not an object', function (): void {
