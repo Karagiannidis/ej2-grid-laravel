@@ -53,9 +53,6 @@ final class GridRequestParser
         return $predicates;
     }
 
-    /**
-     * @param  int  $depth
-     */
     private function predicate(mixed $raw, string $path, int $depth): FilterPredicate|FilterGroup
     {
         if (! is_array($raw)) {

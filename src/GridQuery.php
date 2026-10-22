@@ -28,6 +28,7 @@ final class GridQuery
         $fields = $grid->fieldMap();
 
         $this->filter($query, $request, $fields);
+        $this->search($query, $request, $fields);
         $this->sort($query, $request, $fields);
         $this->orderByKey($query);
         $this->paginate($query, $request);
@@ -59,6 +60,15 @@ final class GridQuery
     private function filter(Builder $query, GridRequest $request, array $fields): void
     {
         new GridFilter($fields)->apply($query, $request->filters);
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<string, Field>  $fields
+     */
+    private function search(Builder $query, GridRequest $request, array $fields): void
+    {
+        new GridFilter($fields)->search($query, $request->searches);
     }
 
     /**
