@@ -6,6 +6,8 @@ namespace Karagiannidis\Ej2Grid\Tests\Fixtures\Grids;
 
 use Illuminate\Database\Eloquent\Builder;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
+use Karagiannidis\Ej2Grid\Fields\BooleanField;
+use Karagiannidis\Ej2Grid\Fields\DateField;
 use Karagiannidis\Ej2Grid\Fields\NumericField;
 use Karagiannidis\Ej2Grid\Fields\TextField;
 use Karagiannidis\Ej2Grid\Grid;
@@ -24,6 +26,8 @@ final class PersonTeamGrid extends Grid
             new TextField('name'),
             new NumericField('team.id'),
             new TextField('team.name'),
+            new BooleanField('team.active'),
+            new DateField('team.foundedOn', 'founded_on'),
         ];
     }
 }
