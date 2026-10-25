@@ -27,6 +27,18 @@ final class GridQuery
     {
         $this->ensureWithinPageLimit($grid, $request);
 
+        $query = $this->buildUnpaged($grid, $request);
+
+        $this->paginate($query, $request);
+
+        return $query;
+    }
+
+    /**
+     * @return Builder<Model>
+     */
+    public function buildUnpaged(Grid $grid, GridRequest $request): Builder
+    {
         $query = $grid->buildQuery($request);
         $fields = $grid->fieldMap();
 
@@ -41,8 +53,6 @@ final class GridQuery
             $this->sort($query, $request, $fields);
             $this->orderByKey($query);
         }
-
-        $this->paginate($query, $request);
 
         return $query;
     }

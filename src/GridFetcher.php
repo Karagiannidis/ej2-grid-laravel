@@ -7,6 +7,7 @@ namespace Karagiannidis\Ej2Grid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\LazyCollection;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\DTOs\GridResult;
 
@@ -29,6 +30,17 @@ final class GridFetcher
         $count = $request->requiresCounts ? $this->count($query, $request, count($rows)) : null;
 
         return new GridResult($rows, $count);
+    }
+
+    /**
+     * @return LazyCollection<int, array<string, mixed>>
+     */
+    public function rows(Grid $grid, GridRequest $request): LazyCollection
+    {
+        $query = new GridQuery()->buildUnpaged($grid, $request);
+        $fields = $this->fields($grid, $request);
+
+        return $query->lazy()->map(fn (Model $model): array => $this->row($model, $fields));
     }
 
     /**

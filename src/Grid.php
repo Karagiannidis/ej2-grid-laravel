@@ -7,6 +7,7 @@ namespace Karagiannidis\Ej2Grid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\LazyCollection;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\DTOs\GridResult;
 use Karagiannidis\Ej2Grid\Http\GridRequestParser;
@@ -28,6 +29,20 @@ abstract class Grid
         $gridRequest = new GridRequestParser()->parse($request->all());
 
         return new GridFetcher()->fetch($this, $gridRequest);
+    }
+
+    /**
+     * Every row the request's filters, search and sorting leave, shaped like
+     * the rows handle() answers with, for exporting on the server. The page
+     * the request asks for and the page size limit are ignored.
+     *
+     * @return LazyCollection<int, array<string, mixed>>
+     */
+    final public function rows(Request $request): LazyCollection
+    {
+        $gridRequest = new GridRequestParser()->parse($request->all());
+
+        return new GridFetcher()->rows($this, $gridRequest);
     }
 
     /**
