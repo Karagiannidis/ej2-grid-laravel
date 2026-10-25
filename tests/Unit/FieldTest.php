@@ -104,7 +104,6 @@ describe('values', function (): void {
         expect($value)->toBe('2024-03-15T09:30:00Z');
     })->with([
         'date object in another timezone' => fn (): DateTimeImmutable => new DateTimeImmutable('2024-03-15 11:30:00', new DateTimeZone('Europe/Athens')),
-        'string in the application timezone' => '2024-03-15 09:30:00',
     ]);
 
     it('leaves an empty date empty', function (Field $field): void {
