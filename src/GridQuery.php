@@ -103,14 +103,31 @@ final class GridQuery
         }
 
         foreach ($related as $field) {
-            $alias = $field->relationAlias();
+            $this->joinRelations($query, $field, $joined);
+
+            $query->addSelect($field->qualifiedColumn($model).' as '.$field->attribute());
+        }
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<string, true>  $joined
+     */
+    private function joinRelations(Builder $query, ColumnField $field, array &$joined): void
+    {
+        $model = $query->getModel();
+        $parentAlias = $model->getTable();
+
+        foreach ($field->relationAliases() as $alias => $name) {
+            $relation = $this->relation($model, $name, $field);
 
             if (! isset($joined[$alias])) {
-                $this->joinRelation($query, $field);
+                $this->joinRelation($query, $relation, $parentAlias, $alias);
                 $joined[$alias] = true;
             }
 
-            $query->addSelect($field->qualifiedColumn($model).' as '.$field->attribute());
+            $model = $relation->getRelated();
+            $parentAlias = $alias;
         }
     }
 
@@ -132,21 +149,35 @@ final class GridQuery
     }
 
     /**
-     * @param  Builder<Model>  $query
+     * @return BelongsTo<Model, Model>|HasOne<Model, Model>
      */
-    private function joinRelation(Builder $query, ColumnField $field): void
+    private function relation(Model $model, string $name, ColumnField $field): BelongsTo|HasOne
     {
-        $relationName = (string) $field->relation;
-        $relation = $query->getModel()->{$relationName}();
-        $alias = $field->relationAlias();
+        $relation = $model->{$name}();
 
-        [$gridColumn, $relatedColumn] = match (true) {
-            $relation instanceof BelongsTo => [$relation->getQualifiedForeignKeyName(), $relation->getOwnerKeyName()],
-            $relation instanceof HasOne => [$relation->getQualifiedParentKeyName(), $relation->getForeignKeyName()],
-            default => throw InvalidGridException::unsupportedRelation($field->name, $relationName, get_debug_type($relation)),
-        };
+        if ($relation instanceof BelongsTo || $relation instanceof HasOne) {
+            return $relation;
+        }
 
-        $query->leftJoin($relation->getRelated()->getTable().' as '.$alias, $gridColumn, '=', $alias.'.'.$relatedColumn);
+        throw InvalidGridException::unsupportedRelation($field->name, $name, get_debug_type($relation));
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  BelongsTo<Model, Model>|HasOne<Model, Model>  $relation
+     */
+    private function joinRelation(Builder $query, BelongsTo|HasOne $relation, string $parentAlias, string $alias): void
+    {
+        [$parentColumn, $relatedColumn] = $relation instanceof BelongsTo
+            ? [$relation->getForeignKeyName(), $relation->getOwnerKeyName()]
+            : [$relation->getLocalKeyName(), $relation->getForeignKeyName()];
+
+        $query->leftJoin(
+            $relation->getRelated()->getTable().' as '.$alias,
+            $parentAlias.'.'.$parentColumn,
+            '=',
+            $alias.'.'.$relatedColumn,
+        );
     }
 
     /**

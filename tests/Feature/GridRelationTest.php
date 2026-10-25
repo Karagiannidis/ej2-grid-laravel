@@ -6,6 +6,7 @@ use Karagiannidis\Ej2Grid\DTOs\GridResult;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidGridException;
 use Karagiannidis\Ej2Grid\GridFetcher;
 use Karagiannidis\Ej2Grid\Http\GridRequestParser;
+use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\PassportGrid;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\PersonPassportGrid;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\PersonTeamGrid;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\TeamMembersGrid;
@@ -118,6 +119,21 @@ describe('related values', function (): void {
             ['name' => 'Alice', 'passport' => ['number' => null]],
             ['name' => 'Bob', 'passport' => ['number' => 'AB123']],
             ['name' => 'Carol', 'passport' => ['number' => null]],
+        ]);
+    });
+
+    it('returns the values of a relation of a related model', function (): void {
+        Passport::insert([
+            ['person_id' => Person::where('name', 'Alice')->value('id'), 'number' => 'AB123'],
+            ['person_id' => Person::where('name', 'Carol')->value('id'), 'number' => 'CD456'],
+        ]);
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 12]);
+
+        $result = new GridFetcher()->fetch(new PassportGrid, $request);
+
+        expect($result->rows)->toBe([
+            ['number' => 'AB123', 'person' => ['name' => 'Alice', 'team' => ['name' => 'Red']]],
+            ['number' => 'CD456', 'person' => ['name' => 'Carol', 'team' => ['name' => null]]],
         ]);
     });
 

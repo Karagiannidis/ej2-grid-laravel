@@ -57,7 +57,28 @@ abstract class ColumnField extends Field
      */
     final public function relationAlias(): string
     {
-        return str_replace('.', '__', (string) $this->relation);
+        return $this->alias((string) $this->relation);
+    }
+
+    /**
+     * Each relation on the way to the column, keyed by the alias it is joined
+     * as. 'author.team.name' gives ['author' => 'author', 'author__team' => 'team'].
+     *
+     * @internal
+     *
+     * @return array<string, string>
+     */
+    final public function relationAliases(): array
+    {
+        $aliases = [];
+        $path = null;
+
+        foreach (explode('.', (string) $this->relation) as $name) {
+            $path = $path === null ? $name : $path.'.'.$name;
+            $aliases[$this->alias($path)] = $name;
+        }
+
+        return $aliases;
     }
 
     /**
@@ -118,5 +139,10 @@ abstract class ColumnField extends Field
     protected function parse(mixed $value, string $path): mixed
     {
         return $value;
+    }
+
+    private function alias(string $relation): string
+    {
+        return str_replace('.', '__', $relation);
     }
 }
