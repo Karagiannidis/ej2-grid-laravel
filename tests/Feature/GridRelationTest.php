@@ -6,8 +6,10 @@ use Karagiannidis\Ej2Grid\DTOs\GridResult;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidGridException;
 use Karagiannidis\Ej2Grid\GridFetcher;
 use Karagiannidis\Ej2Grid\Http\GridRequestParser;
+use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\PersonPassportGrid;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\PersonTeamGrid;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Grids\TeamMembersGrid;
+use Karagiannidis\Ej2Grid\Tests\Fixtures\Models\Passport;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Models\Person;
 use Karagiannidis\Ej2Grid\Tests\Fixtures\Models\Team;
 
@@ -106,6 +108,19 @@ describe('related values', function (): void {
         ])->and($result->count)->toBe(3);
     });
 
+    it('returns the values of a relation that keeps its key on the related table', function (): void {
+        Passport::insert(['person_id' => Person::where('name', 'Bob')->value('id'), 'number' => 'AB123']);
+        $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 12]);
+
+        $result = new GridFetcher()->fetch(new PersonPassportGrid, $request);
+
+        expect($result->rows)->toBe([
+            ['name' => 'Alice', 'passport' => ['number' => null]],
+            ['name' => 'Bob', 'passport' => ['number' => 'AB123']],
+            ['name' => 'Carol', 'passport' => ['number' => null]],
+        ]);
+    });
+
     it('rejects a relation with many rows per grid row', function (): void {
         $request = new GridRequestParser()->parse(['requiresCounts' => true, 'skip' => 0, 'take' => 12]);
 
@@ -113,7 +128,7 @@ describe('related values', function (): void {
 
         expect($fetch)->toThrow(
             InvalidGridException::class,
-            "Field 'people.name' reads relation 'people', which returns Illuminate\\Database\\Eloquent\\Relations\\HasMany. Only a BelongsTo holds one value per row.",
+            "Field 'people.name' reads relation 'people', which returns Illuminate\\Database\\Eloquent\\Relations\\HasMany. Only a BelongsTo or HasOne holds one value per row.",
         );
     });
 });

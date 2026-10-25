@@ -7,6 +7,7 @@ namespace Karagiannidis\Ej2Grid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidGridException;
 use Karagiannidis\Ej2Grid\Exceptions\InvalidRequestException;
@@ -137,19 +138,15 @@ final class GridQuery
     {
         $relationName = (string) $field->relation;
         $relation = $query->getModel()->{$relationName}();
-
-        if (! $relation instanceof BelongsTo) {
-            throw InvalidGridException::unsupportedRelation($field->name, $relationName, get_debug_type($relation));
-        }
-
         $alias = $field->relationAlias();
 
-        $query->leftJoin(
-            $relation->getRelated()->getTable().' as '.$alias,
-            $relation->getQualifiedForeignKeyName(),
-            '=',
-            $alias.'.'.$relation->getOwnerKeyName(),
-        );
+        [$gridColumn, $relatedColumn] = match (true) {
+            $relation instanceof BelongsTo => [$relation->getQualifiedForeignKeyName(), $relation->getOwnerKeyName()],
+            $relation instanceof HasOne => [$relation->getQualifiedParentKeyName(), $relation->getForeignKeyName()],
+            default => throw InvalidGridException::unsupportedRelation($field->name, $relationName, get_debug_type($relation)),
+        };
+
+        $query->leftJoin($relation->getRelated()->getTable().' as '.$alias, $gridColumn, '=', $alias.'.'.$relatedColumn);
     }
 
     /**
