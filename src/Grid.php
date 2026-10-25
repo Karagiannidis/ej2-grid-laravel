@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\LazyCollection;
 use Karagiannidis\Ej2Grid\DTOs\GridRequest;
 use Karagiannidis\Ej2Grid\DTOs\GridResult;
+use Karagiannidis\Ej2Grid\Exceptions\InvalidGridException;
 use Karagiannidis\Ej2Grid\Http\GridRequestParser;
 
 abstract class Grid
@@ -63,6 +64,10 @@ abstract class Grid
         $map = [];
 
         foreach ($this->fields() as $field) {
+            if (isset($map[$field->name])) {
+                throw InvalidGridException::duplicateField(static::class, $field->name);
+            }
+
             $map[$field->name] = $field;
         }
 
